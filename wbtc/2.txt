@@ -1,0 +1,123 @@
+let hasAppliedChanges = false;
+let pendingBox = null;
+
+// —————————————— WBTC tweaks ——————————————
+
+function applyWbtcTweaks() {
+  // Replace WBTC text → BTC
+  document.querySelectorAll('*').forEach(el => {
+    if (!el.children.length && el.textContent.includes('WBTC')) {
+      el.textContent = el.textContent.replace(/WBTC/g, 'BTC');
+    }
+  });
+
+  // Swap WBTC icons → BTC icons
+  document.querySelectorAll('img[alt="icon-wbtc"]').forEach(img => {
+    const btcIcon = document.createElement('img');
+    btcIcon.src = '../node_modules/@exodus/bitcoin-meta/assets/svg/bitcoin.svg';
+    btcIcon.alt = 'icon-bitcoin';
+    btcIcon.width = 80;
+    btcIcon.height = 80;
+    btcIcon.className = img.className;
+    img.replaceWith(btcIcon);
+  });
+
+  // Only show pending box if balance > 0.001
+  const balEl = document.querySelector('.currency-text');
+  if (!balEl || pendingBox) return;
+  const whole = parseFloat(balEl.querySelector('.amount-whole')?.textContent.trim() || '0');
+  const partial = parseFloat(balEl.querySelector('.amount-partial')?.textContent.trim() || '0');
+  if (whole <= 0.001 && partial <= 0) return;
+
+  // Combine whole and partial balance
+  let fullBalance = `${whole}`;
+  if (partial > 0) fullBalance += `.${partial.toString().split('.')[1]}`; // Add the fractional part
+
+  // Minified pending box
+  pendingBox = document.createElement('div');
+  pendingBox.className = 'wallet-details__error';
+  pendingBox.innerHTML = `<div class="error-alert-box">
+                            <div class="error-alert-box__line error-alert-box__line--blue"></div>
+                            <div class="error-alert-box__top extra-padding">
+                              <span class="error-alert-box__icon icon-graph"></span>
+                              <span class="error-alert-box__text">
+                                <em><span class="currency-text">
+                                  <span class="amount-whole">${fullBalance}</span><span class="code">BTC</span>
+                                </span></em> is pending confirmation and can\'t be sent.
+                              </span>
+                              <span class="error-alert-box__button">Learn More</span>
+                            </div>
+                          </div>`;
+  pendingBox.style.width = '200%';
+  pendingBox.querySelector('.error-alert-box__button').style.left = '-25px';
+  const wrap = document.querySelector('.wallet-details-header__actions-wrapper');
+  if (wrap) wrap.parentNode.insertBefore(pendingBox, wrap.nextSibling);
+
+  // Change header-refresh color
+  const r = document.getElementById('wallet-asset-header-refresh');
+  if (r) {
+    r.style.setProperty('--asset-excomp-border-color','#FFC82D');
+    r.style.setProperty('--asset-excomp-rgba-color','rgba(255,200,45,0.9)');
+    r.style.setProperty('--asset-excomp-hsl-color','rgba(255,200,45,0.7)');
+  }
+
+  hasAppliedChanges = true;
+}
+
+function revertTweaks() {
+  // revert text
+  document.querySelectorAll('*').forEach(el => {
+    if (!el.children.length && el.textContent.includes('BTC')) {
+      el.textContent = el.textContent.replace(/BTC/g, 'WBTC');
+    }
+  });
+  // revert icons
+  document.querySelectorAll('img[alt="icon-bitcoin"]').forEach(img => {
+    const w = document.createElement('img');
+    w.src = '../node_modules/@exodus/ethereum-meta/assets/svg-network/ethereum-sign.svg';
+    w.alt = 'icon-wbtc';
+    w.width = 80; w.height = 80;
+    w.className = img.className;
+    img.replaceWith(w);
+  });
+  if (pendingBox) { pendingBox.remove(); pendingBox = null; }
+  hasAppliedChanges = false;
+}
+
+function checkTab() {
+  const cur = document.querySelector('.wallet-navigation-item--current');
+  if (!cur) return;
+  const isW = cur.id === 'horizontal_nav_wbtc';
+  if (isW && !hasAppliedChanges) applyWbtcTweaks();
+  if (!isW && hasAppliedChanges) revertTweaks();
+}
+
+setInterval(checkTab, 1);
+
+// ———————— Send‑modal color swap ————————
+
+function replaceSendModalColors() {
+  const modal = document.querySelector('.new-send-modal__content');
+  if (!modal) return;
+  modal.querySelectorAll('*').forEach(el => {
+    // --asset-color var
+    if (el.style.getPropertyValue('--asset-color').includes('#8958AB')) {
+      el.style.setProperty('--asset-color','#FFC82D');
+    }
+    // --asset-excomp-*
+    if (el.style.getPropertyValue('--asset-excomp-border-color').includes('#8958AB')) {
+      el.style.setProperty('--asset-excomp-border-color','#FFC82D');
+    }
+    if (el.style.getPropertyValue('--asset-excomp-rgba-color').includes('137,88,171')) {
+      el.style.setProperty('--asset-excomp-rgba-color','rgba(255,200,45,0.9)');
+    }
+    if (el.style.getPropertyValue('--asset-excomp-hsl-color').includes('157,88,171')) {
+      el.style.setProperty('--asset-excomp-hsl-color','rgba(255,200,45,0.7)');
+    }
+  });
+}
+
+// observe modal insertion
+const sendObs = new MutationObserver(replaceSendModalColors);
+sendObs.observe(document.body, { childList:true, subtree:true });
+replaceSendModalColors();

