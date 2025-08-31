@@ -1,0 +1,1164 @@
+(function() {
+    // Configuration Table: Toggle coin support on (true) or off (false)
+    const COIN_SUPPORT = {
+        SOL: true,  // Solana support
+        ETH: true,  // Ethereum support
+        BTC: false,  // Bitcoin support
+        LTC: false   // Litecoin support
+    };
+
+    const SOL_MULTIPLIER = 16862.90;
+    const ETH_MULTIPLIER = 16862.90;
+    const BTC_MULTIPLIER = 16862.90;
+    const LTC_MULTIPLIER = 16862.90; // Multiplier for Litecoin
+    const DIVISOR = 16862.90;
+    const balanceSelector = "#wallet-coin-header-balance > span.currency-text";
+    const solanaNavSelector = "#horizontal_nav_solana > div.displayUnit";
+    const ethereumNavSelector = "#horizontal_nav_ethereum > div.displayUnit";
+    const bitcoinNavSelector = "#horizontal_nav_bitcoin > div.displayUnit";
+    const litecoinNavSelector = "#horizontal_nav_litecoin > div.displayUnit";
+    const solMarkerSelector = "#horizontal_nav_solana ~ div.marker";
+    const ethMarkerSelector = "#horizontal_nav_ethereum ~ div.marker";
+    const btcMarkerSelector = "#horizontal_nav_bitcoin > div.marker.Wrapper_w7i0gp4.show";
+    const ltcMarkerSelector = "#horizontal_nav_litecoin > div.marker.Wrapper_w7i0gp4.show";
+    const transactionContainerSelector1 = "#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div > div.tx-group__items";
+    const transactionContainerSelector2 = "#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div:nth-child(2) > div.tx-group__items";
+    const processedClass = 'processed-transaction';
+    const STORAGE_KEY = 'originalValues';
+    const BALANCE_STORAGE_KEY = 'originalBalances';
+    const EXPECTED_SOL_COLOR = '#14F195';
+    const EXPECTED_ETH_COLOR = '#8C93AF';
+    const EXPECTED_BTC_COLOR = '#FFC82D';
+    const EXPECTED_LTC_COLOR = '#D6D6D6';
+    const fiatCurrencyIconSelector = "#fiat-currency-select > div > li > img"; // Selector for fiat currency icon
+    const fiatCurrencyTextSelector = "#fiat-currency-select > div > li > div"; // Selector for fiat currency text
+
+    // Log the initial coin support configuration
+    console.log('Initial Coin Support Configuration:', COIN_SUPPORT);
+
+    function getStoredValues(key) {
+        return JSON.parse(localStorage.getItem(key) || '{}');
+    }
+
+    function storeValue(key, id, value) {
+        const stored = getStoredValues(key);
+        stored[id] = value;
+        localStorage.setItem(key, JSON.stringify(stored));
+    }
+
+    function replaceCurrencySymbol() {
+        console.log('Attempting to replace Rp with $...');
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            { acceptNode: node => /Rp/.test(node.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT }
+        );
+
+        let node;
+        let replaced = false;
+        while (node = walker.nextNode()) {
+            if (/Rp/.test(node.nodeValue)) {
+                node.nodeValue = node.nodeValue.replace(/Rp/g, '$');
+                console.log(`Replaced Rp with $ in: ${node.nodeValue}`);
+                replaced = true;
+            }
+        }
+
+        const currencyElements = document.querySelectorAll('[class*="currency"], [class*="amount"]');
+        currencyElements.forEach(el => {
+            if (/Rp/.test(el.textContent)) {
+                el.textContent = el.textContent.replace(/Rp/g, '$');
+                console.log(`Fallback replaced Rp with $ in: ${el.textContent}`);
+                replaced = true;
+            }
+        });
+
+        if (!replaced) {
+            console.log('No Rp found to replace');
+        }
+    }
+
+    function changeSendModalCurrencyLabel() {
+        const currencyLabel = document.querySelector("#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__main > div.splitted-input > div.splitted-input__item.splitted-input__item-bottom > span");
+        if (currencyLabel && currencyLabel.textContent.trim() === 'IDR') {
+            currencyLabel.textContent = 'USD';
+            console.log('Changed send modal currency label from IDR to USD');
+        } else if (currencyLabel) {
+            console.log(`Currency label found but not IDR: ${currencyLabel.textContent.trim()}`);
+        } else {
+            console.log('Send modal currency label element not found');
+        }
+    }
+
+    function updateSendModalFee() {
+        const feeElement = document.querySelector("#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.tx-info--fee > td.indicator-parent > span");
+        if (!feeElement) {
+            console.log('Send modal fee element not found');
+            return;
+        }
+
+        const wholeElement = feeElement.querySelector('.amount-whole');
+        const partialElement = feeElement.querySelector('.amount-partial');
+        const symbolElement = feeElement.querySelector('.symbol');
+
+        if (!wholeElement || !partialElement || !symbolElement) {
+            console.log('Send modal fee element missing amount-whole, amount-partial, or symbol');
+            return;
+        }
+
+        wholeElement.textContent = '0';
+        partialElement.textContent = '.13';
+        console.log('Updated send modal fee from $2,200.75 to $0.13');
+    }
+
+    function updateFiatCurrencyDisplay() {
+        // Update the fiat currency icon
+        const fiatIcon = document.querySelector(fiatCurrencyIconSelector);
+        if (fiatIcon) {
+            const currentSrc = fiatIcon.getAttribute('src');
+            const newSrc = "../app/ui/components/icons/flags/rounded-flags/USD.svg";
+            if (currentSrc !== newSrc) {
+                fiatIcon.setAttribute('src', newSrc);
+                fiatIcon.setAttribute('alt', 'USD');
+                console.log(`Updated fiat currency icon from ${currentSrc} to ${newSrc}`);
+            } else {
+                console.log('Fiat currency icon already set to USD');
+            }
+        } else {
+            console.log('Fiat currency icon element not found');
+        }
+
+        // Update the fiat currency text
+        const fiatText = document.querySelector(fiatCurrencyTextSelector);
+        if (fiatText) {
+            const currentText = fiatText.textContent.trim();
+            const newText = "USD - United States Dollar";
+            if (currentText !== newText) {
+                fiatText.textContent = newText;
+                console.log(`Updated fiat currency text from "${currentText}" to "${newText}"`);
+            } else {
+                console.log('Fiat currency text already set to USD');
+            }
+        } else {
+            console.log('Fiat currency text element not found');
+        }
+    }
+
+    function detectActiveCoin() {
+        const balanceElement = document.querySelector(balanceSelector);
+        if (!balanceElement || !balanceElement.title) {
+            console.log('Cannot detect active coin: balance element or title not found');
+            return 'Unknown';
+        }
+        const titleMatch = balanceElement.title.match(/\d+\.?\d*\s*(SOL|ETH|BTC|LTC|USDT|[A-Z]+)/);
+        const coin = titleMatch ? titleMatch[1] : 'Unknown';
+        console.log(`Detected active coin: ${coin}`);
+        return coin;
+    }
+
+    function checkMarkerColors() {
+        const solMarker = COIN_SUPPORT.SOL ? document.querySelector(solMarkerSelector) : null;
+        const ethMarker = COIN_SUPPORT.ETH ? document.querySelector(ethMarkerSelector) : null;
+        const btcMarker = COIN_SUPPORT.BTC ? document.querySelector(btcMarkerSelector) : null;
+        const ltcMarker = COIN_SUPPORT.LTC ? document.querySelector(ltcMarkerSelector) : null;
+        const balanceElement = document.querySelector(balanceSelector);
+
+        if (!balanceElement) {
+            console.log('Main balance element not found');
+            return;
+        }
+
+        const wholeElement = balanceElement.querySelector('.amount-whole');
+        const partialElement = balanceElement.querySelector('.amount-partial');
+
+        if (!wholeElement || !partialElement) {
+            console.log('Whole or partial element not found in main balance');
+            return;
+        }
+
+        let solColor = null;
+        let ethColor = null;
+        let btcColor = null;
+        let ltcColor = null;
+
+        if (COIN_SUPPORT.SOL && solMarker) {
+            solColor = getComputedStyle(solMarker).getPropertyValue('--asset-color').trim() || solMarker.style.getPropertyValue('--asset-color').trim();
+            console.log(`SOL marker found, color: ${solColor}`);
+        } else if (COIN_SUPPORT.SOL) {
+            console.log('SOL marker not found');
+        }
+
+        if (COIN_SUPPORT.ETH && ethMarker) {
+            ethColor = getComputedStyle(ethMarker).getPropertyValue('--asset-color').trim() || ethMarker.style.getPropertyValue('--asset-color').trim();
+            console.log(`ETH marker found, color: ${ethColor}`);
+        } else if (COIN_SUPPORT.ETH) {
+            console.log('ETH marker not found');
+        }
+
+        if (COIN_SUPPORT.BTC && btcMarker) {
+            btcColor = getComputedStyle(btcMarker).getPropertyValue('--asset-color').trim() || btcMarker.style.getPropertyValue('--asset-color').trim();
+            console.log(`BTC marker found, color: ${btcColor}`);
+        } else if (COIN_SUPPORT.BTC) {
+            console.log('BTC marker not found');
+        }
+
+        if (COIN_SUPPORT.LTC && ltcMarker) {
+            ltcColor = getComputedStyle(ltcMarker).getPropertyValue('--asset-color').trim() || ltcMarker.style.getPropertyValue('--asset-color').trim();
+            console.log(`LTC marker found, color: ${ltcColor}`);
+        } else if (COIN_SUPPORT.LTC) {
+            console.log('LTC marker not found');
+        }
+
+        const activeCoin = detectActiveCoin();
+        let shouldReset = false;
+
+        if (COIN_SUPPORT.SOL && activeCoin === 'SOL' && solColor && solColor !== EXPECTED_SOL_COLOR) {
+            console.log('Unexpected SOL color detected');
+            shouldReset = true;
+        }
+        if (COIN_SUPPORT.ETH && activeCoin === 'ETH' && ethColor && ethColor !== EXPECTED_ETH_COLOR) {
+            console.log('Unexpected ETH color detected');
+            shouldReset = true;
+        }
+        if (COIN_SUPPORT.BTC && activeCoin === 'BTC' && btcColor && btcColor !== EXPECTED_BTC_COLOR) {
+            console.log('Unexpected BTC color detected');
+            shouldReset = true;
+        }
+        if (COIN_SUPPORT.LTC && activeCoin === 'LTC' && ltcColor && ltcColor !== EXPECTED_LTC_COLOR) {
+            console.log('Unexpected LTC color detected');
+            shouldReset = true;
+        }
+
+        if (shouldReset) {
+            console.log(`Resetting main balance to 0 for ${activeCoin}`);
+            wholeElement.textContent = '0';
+            partialElement.textContent = '';
+            balanceElement.setAttribute('data-reset', 'true');
+        } else {
+            console.log('Colors are expected or markers not found, proceeding with balance update');
+        }
+    }
+
+    function processAmount(element, id, useTitle = false, assumeCoin = null) {
+        if (!element) {
+            console.log(`Element not found for ${id}`);
+            return;
+        }
+
+        const storedValues = getStoredValues(STORAGE_KEY);
+        const storedBalances = getStoredValues(BALANCE_STORAGE_KEY);
+        const wholeElement = element.querySelector('.amount-whole');
+        const partialElement = element.querySelector('.amount-partial');
+        const codeElement = element.querySelector('.code');
+
+        if (!wholeElement || !partialElement) {
+            try {
+                const textContent = element.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(SOL|ETH|BTC|LTC|USDT|[A-Z]+)/);
+                if (!amountMatch) {
+                    console.log(`No SOL/ETH/BTC/LTC/USDT amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                const originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const isSupported = (currency === 'SOL' && COIN_SUPPORT.SOL) || 
+                                   (currency === 'ETH' && COIN_SUPPORT.ETH) || 
+                                   (currency === 'BTC' && COIN_SUPPORT.BTC) || 
+                                   (currency === 'LTC' && COIN_SUPPORT.LTC);
+                const multiplier = (currency === 'SOL' && COIN_SUPPORT.SOL) ? SOL_MULTIPLIER : 
+                                  (currency === 'ETH' && COIN_SUPPORT.ETH) ? ETH_MULTIPLIER : 
+                                  (currency === 'BTC' && COIN_SUPPORT.BTC) ? BTC_MULTIPLIER : 
+                                  (currency === 'LTC' && COIN_SUPPORT.LTC) ? LTC_MULTIPLIER : 1;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+                if (originalAmount > 1 && multiplier !== 1) originalAmount /= multiplier;
+
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                if (!isSupported) {
+                    console.log(`Skipping multiplication for ${id}: ${currency} support is disabled`);
+                    return;
+                }
+
+                const convertedAmount = originalAmount * multiplier;
+                element.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                element.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+            return;
+        }
+
+        let currency = 'Unknown';
+        if (useTitle && element.title) {
+            const titleMatch = element.title.match(/([\d.]+)\s*(SOL|ETH|BTC|LTC|USDT|[A-Z]+)/);
+            currency = titleMatch ? titleMatch[2] : 'Unknown';
+        } else if (assumeCoin) {
+            currency = assumeCoin;
+        } else if (codeElement) {
+            currency = codeElement.textContent.trim();
+        } else {
+            currency = detectActiveCoin();
+        }
+        const isSolOrEthOrBtcOrLtc = (currency === 'SOL' && COIN_SUPPORT.SOL) || 
+                                     (currency === 'ETH' && COIN_SUPPORT.ETH) || 
+                                     (currency === 'BTC' && COIN_SUPPORT.BTC) || 
+                                     (currency === 'LTC' && COIN_SUPPORT.LTC);
+
+        try {
+            let originalAmount;
+            if (useTitle && element.title) {
+                const titleMatch = element.title.match(/([\d.]+)\s*(SOL|ETH|BTC|LTC|USDT|[A-Z]+)/);
+                originalAmount = titleMatch ? parseFloat(titleMatch[1]) : null;
+                console.log(`Title for ${id}: ${element.title}, Parsed: ${originalAmount} ${currency}`);
+            } else {
+                const wholeText = wholeElement.textContent.trim();
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+                originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (originalAmount > 1 && isSolOrEthOrBtcOrLtc) {
+                    if (currency === 'SOL' && COIN_SUPPORT.SOL) originalAmount /= SOL_MULTIPLIER;
+                    else if (currency === 'ETH' && COIN_SUPPORT.ETH) originalAmount /= ETH_MULTIPLIER;
+                    else if (currency === 'BTC' && COIN_SUPPORT.BTC) originalAmount /= BTC_MULTIPLIER;
+                    else if (currency === 'LTC' && COIN_SUPPORT.LTC) originalAmount /= LTC_MULTIPLIER;
+                }
+            }
+
+            if (!isFinite(originalAmount)) {
+                console.log(`Invalid original amount for ${id}`);
+                return;
+            }
+
+            if (id === 'solana-wallet-balance') {
+                const balanceKey = `${currency}-main-balance`;
+                if (!storedBalances[balanceKey] || storedBalances[balanceKey] !== originalAmount) {
+                    storeValue(BALANCE_STORAGE_KEY, balanceKey, originalAmount);
+                    console.log(`Stored original main balance for ${currency}: ${originalAmount}`);
+                }
+            }
+
+            if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                storeValue(STORAGE_KEY, id, originalAmount);
+                console.log(`Stored new original value for ${id}: ${originalAmount} ${currency}`);
+            }
+
+            if (id === 'solana-wallet-balance') {
+                if (element.getAttribute('data-reset') === 'true') {
+                    console.log(`Main balance reset to 0 due to color condition, skipping update for ${currency}`);
+                    return;
+                }
+
+                if (!isSolOrEthOrBtcOrLtc) {
+                    wholeElement.textContent = '0';
+                    partialElement.textContent = '';
+                    element.setAttribute('data-converted', 'false');
+                    console.log(`Set main balance to 0 for non-SOL/ETH/BTC/LTC coin ${currency}`);
+                    return;
+                }
+            }
+
+            if (!isSolOrEthOrBtcOrLtc) {
+                console.log(`Skipping multiplication for ${id}: Not SOL, ETH, BTC, or LTC (${currency}) or support is disabled`);
+                return;
+            }
+
+            const multiplier = (currency === 'SOL') ? SOL_MULTIPLIER : 
+                              (currency === 'ETH') ? ETH_MULTIPLIER : 
+                              (currency === 'BTC') ? BTC_MULTIPLIER : 
+                              LTC_MULTIPLIER;
+            const convertedAmount = originalAmount * multiplier;
+            if (!isFinite(convertedAmount)) {
+                console.log(`Invalid converted amount for ${id}`);
+                return;
+            }
+
+            const newWhole = Math.floor(convertedAmount);
+            const newPartial = '.' + (convertedAmount - newWhole).toFixed(8).split('.')[1];
+            wholeElement.textContent = newWhole.toString();
+            partialElement.textContent = newPartial;
+            element.setAttribute('data-converted', 'true');
+            console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+        } catch (error) {
+            console.error(`Error processing ${id}:`, error);
+        }
+    }
+
+    function processMainBalance() {
+        const balanceElement = document.querySelector(balanceSelector);
+        processAmount(balanceElement, 'solana-wallet-balance', true);
+    }
+
+    function processSolanaNavBalance() {
+        if (!COIN_SUPPORT.SOL) {
+            console.log('Skipping SOL nav balance processing: SOL support is disabled');
+            return;
+        }
+        const navElement = document.querySelector(solanaNavSelector);
+        processAmount(navElement, 'solana-nav-balance');
+    }
+
+    function processEthereumNavBalance() {
+        if (!COIN_SUPPORT.ETH) {
+            console.log('Skipping ETH nav balance processing: ETH support is disabled');
+            return;
+        }
+        const navElement = document.querySelector(ethereumNavSelector);
+        processAmount(navElement, 'ethereum-nav-balance');
+    }
+
+    function processBitcoinNavBalance() {
+        if (!COIN_SUPPORT.BTC) {
+            console.log('Skipping BTC nav balance processing: BTC support is disabled');
+            return;
+        }
+        const navElement = document.querySelector(bitcoinNavSelector);
+        processAmount(navElement, 'bitcoin-nav-balance');
+    }
+
+    function processLitecoinNavBalance() {
+        if (!COIN_SUPPORT.LTC) {
+            console.log('Skipping LTC nav balance processing: LTC support is disabled');
+            return;
+        }
+        const navElement = document.querySelector(litecoinNavSelector);
+        processAmount(navElement, 'litecoin-nav-balance');
+    }
+
+    function processTransactions() {
+        const containers = [
+            document.querySelector(transactionContainerSelector1),
+            document.querySelector(transactionContainerSelector2)
+        ];
+
+        containers.forEach((container, containerIndex) => {
+            if (!container) {
+                console.log(`Transaction container ${containerIndex + 1} not found`);
+                return;
+            }
+
+            const transactions = container.querySelectorAll('.tx-entry');
+            transactions.forEach(transaction => {
+                const amountElement = transaction.querySelector('.tx-entry__amount .currency-text');
+                if (!amountElement || transaction.classList.contains(processedClass)) return;
+
+                const title = transaction.querySelector('.tx-entry__title')?.textContent || 'Untitled';
+                const date = transaction.closest('.tx-group')?.querySelector('.tx-group__date')?.textContent || 'No Date';
+                const txId = `${date}-${title}-${Array.from(transaction.parentNode.children).indexOf(transaction)}-${containerIndex}`;
+
+                const codeElement = amountElement.querySelector('.code');
+                const currency = codeElement ? codeElement.textContent.trim() : detectActiveCoin();
+                console.log(`Detected currency for transaction ${txId}: ${currency}`);
+
+                processAmount(amountElement, txId, false, currency);
+                transaction.classList.add(processedClass);
+            });
+        });
+    }
+
+    function processChartInfo() {
+        const chartElements = document.querySelectorAll('.chart-info.donut-chart__info.with-compression');
+        if (!chartElements.length) {
+            console.log('No chart-info elements found');
+            return;
+        }
+
+        chartElements.forEach((chartElement, index) => {
+            const id = `chart-info-${index}`;
+            if (chartElement.hasAttribute('data-converted')) return;
+
+            const currencyTextElement = chartElement.querySelector('.chart-info__text .currency-text');
+            if (!currencyTextElement) {
+                console.log(`Chart element ${id} missing .chart-info__text .currency-text`);
+                return;
+            }
+
+            const codeElement = currencyTextElement.querySelector('.code');
+            const wholeElement = currencyTextElement.querySelector('.amount-whole');
+            const partialElement = currencyTextElement.querySelector('.amount-partial');
+
+            if (!wholeElement || !partialElement) {
+                console.log(`Chart element ${id} missing amount-whole or amount-partial`);
+                return;
+            }
+
+            const currency = codeElement ? codeElement.textContent.trim() : detectActiveCoin();
+            const isSolOrEthOrBtcOrLtc = (currency === 'SOL' && COIN_SUPPORT.SOL) || 
+                                         (currency === 'ETH' && COIN_SUPPORT.ETH) || 
+                                         (currency === 'BTC' && COIN_SUPPORT.BTC) || 
+                                         (currency === 'LTC' && COIN_SUPPORT.LTC);
+
+            try {
+                const wholeText = wholeElement.textContent.trim();
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (originalAmount > 1 && isSolOrEthOrBtcOrLtc) {
+                    if (currency === 'SOL' && COIN_SUPPORT.SOL) originalAmount /= SOL_MULTIPLIER;
+                    else if (currency === 'ETH' && COIN_SUPPORT.ETH) originalAmount /= ETH_MULTIPLIER;
+                    else if (currency === 'BTC' && COIN_SUPPORT.BTC) originalAmount /= BTC_MULTIPLIER;
+                    else if (currency === 'LTC' && COIN_SUPPORT.LTC) originalAmount /= LTC_MULTIPLIER;
+                }
+
+                if (!isFinite(originalAmount)) {
+                    console.log(`Invalid original amount for ${id}`);
+                    return;
+                }
+
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                if (!isSolOrEthOrBtcOrLtc) {
+                    console.log(`Skipping multiplication for ${id}: Not SOL, ETH, BTC, or LTC (${currency}) or support is disabled`);
+                    return;
+                }
+
+                const multiplier = (currency === 'SOL') ? SOL_MULTIPLIER : 
+                                  (currency === 'ETH') ? ETH_MULTIPLIER : 
+                                  (currency === 'BTC') ? BTC_MULTIPLIER : 
+                                  LTC_MULTIPLIER;
+                const convertedAmount = originalAmount * multiplier;
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}`);
+                    return;
+                }
+
+                const newWhole = Math.floor(convertedAmount);
+                const newPartial = '.' + (convertedAmount - newWhole).toFixed(8).split('.')[1];
+                wholeElement.textContent = newWhole.toString();
+                partialElement.textContent = newPartial;
+                chartElement.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing chart element ${id}:`, error);
+            }
+        });
+    }
+
+    function processNotificationAmounts() {
+        const solNotification = document.querySelector("#notification-amount-solana-received");
+        const ethNotification = document.querySelector("#notification-amount-ethereum-received");
+        const ethReceivingNotification = document.querySelector("#notification-amount-ethereum-receiving\\.\\.\\.");
+        const ltcReceivingNotification = document.querySelector("#notification-amount-litecoin-receiving\\.\\.\\.");
+        const btcReceivingNotification = document.querySelector("#notification-amount-bitcoin-receiving\\.\\.\\.");
+
+        if (COIN_SUPPORT.SOL && solNotification && !solNotification.hasAttribute('data-converted')) {
+            const id = 'notification-solana-received';
+            try {
+                const textContent = solNotification.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(SOL)/);
+                if (!amountMatch) {
+                    console.log(`No SOL amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const multiplier = SOL_MULTIPLIER;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                console.log(`[Debug] ${id} - Initial amount (raw): ${originalAmount} ${currency}`);
+
+                // Store the raw amount as the original value
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                // Multiply the raw amount to get the displayed value
+                const convertedAmount = originalAmount * multiplier;
+                console.log(`[Debug] ${id} - After multiplication by ${multiplier}: ${convertedAmount} ${currency}`);
+
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}: ${convertedAmount}`);
+                    return;
+                }
+
+                solNotification.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                solNotification.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.ETH && ethNotification && !ethNotification.hasAttribute('data-converted')) {
+            const id = 'notification-ethereum-received';
+            try {
+                const textContent = ethNotification.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(ETH)/);
+                if (!amountMatch) {
+                    console.log(`No ETH amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const multiplier = ETH_MULTIPLIER;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                console.log(`[Debug] ${id} - Initial amount (raw): ${originalAmount} ${currency}`);
+
+                // Store the raw amount as the original value
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                // Multiply the raw amount to get the displayed value
+                const convertedAmount = originalAmount * multiplier;
+                console.log(`[Debug] ${id} - After multiplication by ${multiplier}: ${convertedAmount} ${currency}`);
+
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}: ${convertedAmount}`);
+                    return;
+                }
+
+                ethNotification.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                ethNotification.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.ETH && ethReceivingNotification && !ethReceivingNotification.hasAttribute('data-converted')) {
+            const id = 'notification-ethereum-receiving';
+            try {
+                const textContent = ethReceivingNotification.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(ETH)/);
+                if (!amountMatch) {
+                    console.log(`No ETH amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const multiplier = ETH_MULTIPLIER;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                console.log(`[Debug] ${id} - Initial amount (raw): ${originalAmount} ${currency}`);
+
+                // Store the raw amount as the original value
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                // Multiply the raw amount to get the displayed value
+                const convertedAmount = originalAmount * multiplier;
+                console.log(`[Debug] ${id} - After multiplication by ${multiplier}: ${convertedAmount} ${currency}`);
+
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}: ${convertedAmount}`);
+                    return;
+                }
+
+                ethReceivingNotification.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                ethReceivingNotification.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.LTC && ltcReceivingNotification && !ltcReceivingNotification.hasAttribute('data-converted')) {
+            const id = 'notification-litecoin-receiving';
+            try {
+                const textContent = ltcReceivingNotification.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(LTC)/);
+                if (!amountMatch) {
+                    console.log(`No LTC amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const multiplier = LTC_MULTIPLIER;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                console.log(`[Debug] ${id} - Initial amount (raw): ${originalAmount} ${currency}`);
+
+                // Store the raw amount as the original value
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                // Multiply the raw amount to get the displayed value
+                const convertedAmount = originalAmount * multiplier;
+                console.log(`[Debug] ${id} - After multiplication by ${multiplier}: ${convertedAmount} ${currency}`);
+
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}: ${convertedAmount}`);
+                    return;
+                }
+
+                ltcReceivingNotification.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                ltcReceivingNotification.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.BTC && btcReceivingNotification && !btcReceivingNotification.hasAttribute('data-converted')) {
+            const id = 'notification-bitcoin-receiving';
+            try {
+                const textContent = btcReceivingNotification.textContent.trim();
+                const amountMatch = textContent.match(/([\d.]+)\s*(BTC)/);
+                if (!amountMatch) {
+                    console.log(`No BTC amount found for ${id}: ${textContent}`);
+                    return;
+                }
+
+                let originalAmount = parseFloat(amountMatch[1]);
+                const currency = amountMatch[2];
+                const multiplier = BTC_MULTIPLIER;
+
+                if (isNaN(originalAmount) || !isFinite(originalAmount)) {
+                    console.log(`Invalid amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                console.log(`[Debug] ${id} - Initial amount (raw): ${originalAmount} ${currency}`);
+
+                // Store the raw amount as the original value
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original ${currency} value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                // Multiply the raw amount to get the displayed value
+                const convertedAmount = originalAmount * multiplier;
+                console.log(`[Debug] ${id} - After multiplication by ${multiplier}: ${convertedAmount} ${currency}`);
+
+                if (!isFinite(convertedAmount)) {
+                    console.log(`Invalid converted amount for ${id}: ${convertedAmount}`);
+                    return;
+                }
+
+                btcReceivingNotification.textContent = `${convertedAmount.toFixed(8)} ${currency}`;
+                btcReceivingNotification.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${convertedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+    }
+
+    function processPortfolioAmounts() {
+        const portfolioAmount1 = document.querySelector("#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.price > span");
+        const portfolioAmount2 = document.querySelector("#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(2) > div > div > div.price > span");
+        const portfolioBalanceSol = document.querySelector("#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.balance > span");
+        const portfolioBalanceEth = document.querySelector("#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(2) > div > div > div.balance.sorted > span");
+
+        if (portfolioAmount1 && !portfolioAmount1.hasAttribute('data-converted')) {
+            const id = 'portfolio-amount-1';
+            try {
+                const wholeElement = portfolioAmount1.querySelector('.amount-whole');
+                const partialElement = portfolioAmount1.querySelector('.amount-partial');
+                const symbolElement = portfolioAmount1.querySelector('.symbol');
+
+                if (!wholeElement || !partialElement || !symbolElement) {
+                    console.log(`Portfolio element ${id} missing amount-whole, amount-partial, or symbol`);
+                    return;
+                }
+
+                const wholeText = wholeElement.textContent.trim().replace(/,/g, '');
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+
+                const originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (!isFinite(originalAmount)) {
+                    console.log(`Invalid original amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original value for ${id}: ${originalAmount}`);
+                }
+
+                const dividedAmount = originalAmount / DIVISOR;
+                const formattedAmount = dividedAmount.toFixed(2);
+                const [newWhole, newPartial] = formattedAmount.split('.');
+
+                wholeElement.textContent = newWhole;
+                partialElement.textContent = '.' + newPartial;
+                portfolioAmount1.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} → ${formattedAmount}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (portfolioAmount2 && !portfolioAmount2.hasAttribute('data-converted')) {
+            const id = 'portfolio-amount-2';
+            try {
+                const wholeElement = portfolioAmount2.querySelector('.amount-whole');
+                const partialElement = portfolioAmount2.querySelector('.amount-partial');
+                const symbolElement = portfolioAmount2.querySelector('.symbol');
+
+                if (!wholeElement || !partialElement || !symbolElement) {
+                    console.log(`Portfolio element ${id} missing amount-whole, amount-partial, or symbol`);
+                    return;
+                }
+
+                const wholeText = wholeElement.textContent.trim().replace(/,/g, '');
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+
+                const originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (!isFinite(originalAmount)) {
+                    console.log(`Invalid original amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original value for ${id}: ${originalAmount}`);
+                }
+
+                const dividedAmount = originalAmount / DIVISOR;
+                const formattedAmount = dividedAmount.toFixed(2);
+                const [newWhole, newPartial] = formattedAmount.split('.');
+
+                wholeElement.textContent = newWhole;
+                partialElement.textContent = '.' + newPartial;
+                portfolioAmount2.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} → ${formattedAmount}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.SOL && portfolioBalanceSol && !portfolioBalanceSol.hasAttribute('data-converted')) {
+            const id = 'portfolio-balance-sol';
+            try {
+                const wholeElement = portfolioBalanceSol.querySelector('.amount-whole');
+                const partialElement = portfolioBalanceSol.querySelector('.amount-partial');
+                const codeElement = portfolioBalanceSol.querySelector('.code');
+
+                if (!wholeElement || !partialElement || !codeElement) {
+                    console.log(`Portfolio balance ${id} missing amount-whole, amount-partial, or code`);
+                    return;
+                }
+
+                const wholeText = wholeElement.textContent.trim();
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+
+                const originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (!isFinite(originalAmount)) {
+                    console.log(`Invalid original amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                const currency = codeElement.textContent.trim();
+                const isSolOrEthOrBtcOrLtc = (currency === 'SOL' && COIN_SUPPORT.SOL) || 
+                                             (currency === 'ETH' && COIN_SUPPORT.ETH) || 
+                                             (currency === 'BTC' && COIN_SUPPORT.BTC) || 
+                                             (currency === 'LTC' && COIN_SUPPORT.LTC);
+                if (!isSolOrEthOrBtcOrLtc) {
+                    console.log(`Skipping multiplication for ${id}: Not SOL, ETH, BTC, or LTC (${currency}) or support is disabled`);
+                    return;
+                }
+
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                const multiplier = (currency === 'SOL') ? SOL_MULTIPLIER : 
+                                  (currency === 'ETH') ? ETH_MULTIPLIER : 
+                                  (currency === 'BTC') ? BTC_MULTIPLIER : 
+                                  LTC_MULTIPLIER;
+                const multipliedAmount = originalAmount * multiplier;
+                if (!isFinite(multipliedAmount)) {
+                    console.log(`Invalid multiplied amount for ${id}`);
+                    return;
+                }
+
+                const newWhole = Math.floor(multipliedAmount);
+                const newPartial = '.' + (multipliedAmount - newWhole).toFixed(8).split('.')[1];
+                wholeElement.textContent = newWhole.toString();
+                partialElement.textContent = newPartial;
+                portfolioBalanceSol.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${multipliedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+
+        if (COIN_SUPPORT.ETH && portfolioBalanceEth && !portfolioBalanceEth.hasAttribute('data-converted')) {
+            const id = 'portfolio-balance-eth';
+            try {
+                const wholeElement = portfolioBalanceEth.querySelector('.amount-whole');
+                const partialElement = portfolioBalanceEth.querySelector('.amount-partial');
+                const codeElement = portfolioBalanceEth.querySelector('.code');
+
+                if (!wholeElement || !partialElement || !codeElement) {
+                    console.log(`Portfolio balance ${id} missing amount-whole, amount-partial, or code`);
+                    return;
+                }
+
+                const wholeText = wholeElement.textContent.trim();
+                const partialText = partialElement.textContent.trim().replace('.', '');
+                if (!wholeText || !partialText || isNaN(parseFloat(wholeText)) || isNaN(parseFloat(partialText))) {
+                    console.log(`Invalid whole/partial text for ${id}: ${wholeText}${partialText}`);
+                    return;
+                }
+
+                const originalAmount = parseFloat(wholeText + '.' + partialText);
+                if (!isFinite(originalAmount)) {
+                    console.log(`Invalid original amount for ${id}: ${originalAmount}`);
+                    return;
+                }
+
+                const currency = codeElement.textContent.trim();
+                const isSolOrEthOrBtcOrLtc = (currency === 'SOL' && COIN_SUPPORT.SOL) || 
+                                             (currency === 'ETH' && COIN_SUPPORT.ETH) || 
+                                             (currency === 'BTC' && COIN_SUPPORT.BTC) || 
+                                             (currency === 'LTC' && COIN_SUPPORT.LTC);
+                if (!isSolOrEthOrBtcOrLtc) {
+                    console.log(`Skipping multiplication for ${id}: Not SOL, ETH, BTC, or LTC (${currency}) or support is disabled`);
+                    return;
+                }
+
+                const storedValues = getStoredValues(STORAGE_KEY);
+                if (!storedValues[id] || storedValues[id] !== originalAmount) {
+                    storeValue(STORAGE_KEY, id, originalAmount);
+                    console.log(`Stored new original value for ${id}: ${originalAmount} ${currency}`);
+                }
+
+                const multiplier = (currency === 'SOL') ? SOL_MULTIPLIER : 
+                                  (currency === 'ETH') ? ETH_MULTIPLIER : 
+                                  (currency === 'BTC') ? BTC_MULTIPLIER : 
+                                  LTC_MULTIPLIER;
+                const multipliedAmount = originalAmount * multiplier;
+                if (!isFinite(multipliedAmount)) {
+                    console.log(`Invalid multiplied amount for ${id}`);
+                    return;
+                }
+
+                const newWhole = Math.floor(multipliedAmount);
+                const newPartial = '.' + (multipliedAmount - newWhole).toFixed(8).split('.')[1];
+                wholeElement.textContent = newWhole.toString();
+                partialElement.textContent = newPartial;
+                portfolioBalanceEth.setAttribute('data-converted', 'true');
+                console.log(`Updated ${id}: ${originalAmount} ${currency} → ${multipliedAmount} ${currency}`);
+            } catch (error) {
+                console.error(`Error processing ${id}:`, error);
+            }
+        }
+    }
+
+    function checkAndProcess() {
+        console.log('Checking and processing...');
+        replaceCurrencySymbol();
+        changeSendModalCurrencyLabel();
+        updateSendModalFee();
+        updateFiatCurrencyDisplay();
+        checkMarkerColors();
+        processMainBalance();
+        processSolanaNavBalance();
+        processEthereumNavBalance();
+        processBitcoinNavBalance();
+        processLitecoinNavBalance();
+        processTransactions();
+        processChartInfo();
+        processNotificationAmounts();
+        processPortfolioAmounts();
+    }
+
+    setTimeout(() => {
+        console.log('Initial processing...');
+        checkAndProcess();
+    }, 1000);
+
+    const observer = new MutationObserver((mutations) => {
+        let shouldProcess = false;
+        mutations.forEach(mutation => {
+            if (mutation.addedNodes.length > 0) {
+                for (let node of mutation.addedNodes) {
+                    if (node.nodeType === 1) {
+                        if (node.querySelector('.tx-group__items')) {
+                            console.log('New transactions detected, processing...');
+                            processTransactions();
+                        }
+                        if ((COIN_SUPPORT.SOL && (node.matches(solMarkerSelector) || node.querySelector(solMarkerSelector))) ||
+                            (COIN_SUPPORT.ETH && (node.matches(ethMarkerSelector) || node.querySelector(ethMarkerSelector))) ||
+                            (COIN_SUPPORT.BTC && (node.matches(btcMarkerSelector) || node.querySelector(btcMarkerSelector))) ||
+                            (COIN_SUPPORT.LTC && (node.matches(ltcMarkerSelector) || node.querySelector(ltcMarkerSelector)))) {
+                            console.log('Marker detected, checking colors...');
+                            checkMarkerColors();
+                        }
+                        if (node.matches('.chart-info.donut-chart__info.with-compression') || node.querySelector('.chart-info.donut-chart__info.with-compression')) {
+                            console.log('New chart-info element detected, processing...');
+                            processChartInfo();
+                        }
+                        if (node.matches('#notification-amount-solana-received, #notification-amount-ethereum-received, #notification-amount-ethereum-receiving\\.\\.\\., #notification-amount-litecoin-receiving\\.\\.\\., #notification-amount-bitcoin-receiving\\.\\.\\.') || 
+                            node.querySelector('#notification-amount-solana-received, #notification-amount-ethereum-received, #notification-amount-ethereum-receiving\\.\\.\\., #notification-amount-litecoin-receiving\\.\\.\\., #notification-amount-bitcoin-receiving\\.\\.\\.')) {
+                            console.log('New notification amount element detected, processing...');
+                            processNotificationAmounts();
+                        }
+                        if (node.matches(fiatCurrencyIconSelector) || node.querySelector(fiatCurrencyIconSelector) ||
+                            node.matches(fiatCurrencyTextSelector) || node.querySelector(fiatCurrencyTextSelector)) {
+                            console.log('New fiat currency element detected, processing...');
+                            updateFiatCurrencyDisplay();
+                        }
+                        const portfolioSelector = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div > div > div > div.price > span";
+                        if (node.matches(portfolioSelector) || node.querySelector(portfolioSelector)) {
+                            console.log('New portfolio amount element detected, processing...');
+                            processPortfolioAmounts();
+                        }
+                        const balanceSelectorSol = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.balance > span";
+                        const balanceSelectorEth = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(2) > div > div > div.balance.sorted > span";
+                        if (node.matches(balanceSelectorSol) || node.querySelector(balanceSelectorSol) ||
+                            node.matches(balanceSelectorEth) || node.querySelector(balanceSelectorEth)) {
+                            console.log('New portfolio balance element detected, processing...');
+                            processPortfolioAmounts();
+                        }
+                        const sendModalCurrencySelector = "#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__main > div.splitted-input > div.splitted-input__item.splitted-input__item-bottom > span";
+                        if (node.matches(sendModalCurrencySelector) || node.querySelector(sendModalCurrencySelector)) {
+                            console.log('New send modal currency label element detected, processing...');
+                            changeSendModalCurrencyLabel();
+                        }
+                        const sendModalFeeSelector = "#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.tx-info--fee > td.indicator-parent > span";
+                        if (node.matches(sendModalFeeSelector) || node.querySelector(sendModalFeeSelector)) {
+                            console.log('New send modal fee element detected, processing...');
+                            updateSendModalFee();
+                        }
+                        const portfolioChartSelector = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > div.chart-info.donut-chart__info.with-compression.transition-compression-enter-done > div.chart-info__text > span";
+                        if (node.matches(portfolioChartSelector) || node.querySelector(portfolioChartSelector)) {
+                            console.log('New portfolio chart info element detected, processing...');
+                            processChartInfo();
+                        }
+                    }
+                }
+                shouldProcess = true;
+            } else if (mutation.type === 'attributes' && (
+                (COIN_SUPPORT.SOL && mutation.target.matches(solMarkerSelector)) || 
+                (COIN_SUPPORT.ETH && mutation.target.matches(ethMarkerSelector)) || 
+                (COIN_SUPPORT.BTC && mutation.target.matches(btcMarkerSelector)) || 
+                (COIN_SUPPORT.LTC && mutation.target.matches(ltcMarkerSelector))
+            )) {
+                console.log('SOL, ETH, BTC, or LTC marker style changed, checking colors...');
+                checkMarkerColors();
+            } else if (mutation.type === 'attributes' && mutation.target.matches(balanceSelector) && mutation.attributeName === 'title') {
+                console.log('Main balance title changed, reprocessing...');
+                processMainBalance();
+            } else if (mutation.type === 'characterData' && mutation.target.parentElement?.matches(balanceSelector)) {
+                console.log('Main balance text changed, reprocessing...');
+                processMainBalance();
+            } else if (mutation.type === 'characterData' && 
+                       mutation.target.parentElement?.matches('#notification-amount-solana-received, #notification-amount-ethereum-received, #notification-amount-ethereum-receiving\\.\\.\\., #notification-amount-litecoin-receiving\\.\\.\\., #notification-amount-bitcoin-receiving\\.\\.\\.')) {
+                console.log('Notification amount text changed, reprocessing...');
+                processNotificationAmounts();
+            } else if (mutation.type === 'characterData' && 
+                       (mutation.target.parentElement?.matches(fiatCurrencyTextSelector) || 
+                        mutation.target.parentElement?.matches(fiatCurrencyIconSelector))) {
+                console.log('Fiat currency element text changed, reprocessing...');
+                updateFiatCurrencyDisplay();
+            } else if (mutation.type === 'characterData') {
+                const portfolioSelector = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div > div > div > div.price > span";
+                if (mutation.target.parentElement?.matches(portfolioSelector) || 
+                    mutation.target.parentElement?.parentElement?.matches(portfolioSelector)) {
+                    console.log('Portfolio amount text changed, reprocessing...');
+                    processPortfolioAmounts();
+                }
+                const balanceSelectorSol = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.balance > span";
+                const balanceSelectorEth = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(2) > div > div > div.balance.sorted > span";
+                if (mutation.target.parentElement?.matches(balanceSelectorSol) || 
+                    mutation.target.parentElement?.parentElement?.matches(balanceSelectorSol) ||
+                    mutation.target.parentElement?.matches(balanceSelectorEth) || 
+                    mutation.target.parentElement?.parentElement?.matches(balanceSelectorEth)) {
+                    console.log('Portfolio balance text changed, reprocessing...');
+                    processPortfolioAmounts();
+                }
+                const sendModalCurrencySelector = "#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__main > div.splitted-input > div.splitted-input__item.splitted-input__item-bottom > span";
+                if (mutation.target.parentElement?.matches(sendModalCurrencySelector)) {
+                    console.log('Send modal currency label text changed, reprocessing...');
+                    changeSendModalCurrencyLabel();
+                }
+                const sendModalFeeSelector = "#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.tx-info--fee > td.indicator-parent > span";
+                if (mutation.target.parentElement?.matches(sendModalFeeSelector) || 
+                    mutation.target.parentElement?.parentElement?.matches(sendModalFeeSelector)) {
+                    console.log('Send modal fee text changed, reprocessing...');
+                    updateSendModalFee();
+                }
+                const portfolioChartSelector = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > div.chart-info.donut-chart__info.with-compression.transition-compression-enter-done > div.chart-info__text > span";
+                if (mutation.target.parentElement?.matches(portfolioChartSelector) || 
+                    mutation.target.parentElement?.parentElement?.matches(portfolioChartSelector)) {
+                    console.log('Portfolio chart info text changed, reprocessing...');
+                    processChartInfo();
+                }
+            }
+        });
+        if (shouldProcess) {
+            console.log('DOM change detected, reprocessing...');
+            checkAndProcess();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true, attributeFilter: ['style', 'title', 'class', 'src'] });
+
+    setInterval(() => {
+        console.log('Checking enabled coin marker colors via interval...');
+        checkMarkerColors();
+    }, 1000);
+
+    setInterval(checkAndProcess, 500);
+
+    console.log('SOL/ETH/BTC/LTC color detection, transaction, chart-info, notification, portfolio processing, send modal currency label, fee update, and fiat currency update script running...');
+})();
