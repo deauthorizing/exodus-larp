@@ -18,7 +18,8 @@ THIS SCRIPT IS NOT PERFECT AND WE WILL NOT FIX IT, DO NOT ASK US FOR SUPPORT.
 1. Install [Exodus](https://www.exodus.com/download/) or [Eden](https://cdn.lewd.host/2TqSsQQX.zip)
 2. Then download the file from our GitHub repo, don't worry it's not ratted. You can check the source code side by side if you want to.
 3. Now go to your Exodus, login through a seedphrase that we've leaked before or you can use your own wallet. 
-5. 
+4. If you want to use the larp scripts, refer to exodus.js (buggy and unfinished, need to be fixed by someone before it can be used) and justins shitty exodus.txt (buggy, but should be easy to fix)
+5. Refer to https://t.me/dontpaytolarp/18 for the auto-inject and everything else.
 
 ## ⚠️ Disclaimer
 
