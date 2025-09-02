@@ -18,7 +18,7 @@ THIS SCRIPT IS NOT PERFECT AND WE WILL NOT FIX IT, DO NOT ASK US FOR SUPPORT.
 1. Install [Exodus](https://www.exodus.com/download/) or [Eden](https://cdn.lewd.host/2TqSsQQX.zip)
 2. Then download the file from our GitHub repo, don't worry it's not ratted. You can check the source code side by side if you want to.
 3. Now go to your Exodus, login through a seedphrase that we've leaked before or you can use your own wallet. 
-4. auto inject soon
+4. Refer to [@larpforfree](https://t.me/larpforfree/1818) for the tutorial on auto-inject.
 
 ## ⚠️ Disclaimer
 
