@@ -1,187 +1,347 @@
 (function () {
-    let elementsToUpdate = [
-        ["#wallet-coin-header-balance > span.currency-text > span.amount-whole", "83.259754"],
-        ["#wallet-coin-header-balance-local > span > span.amount-whole", "7,030,245"],
-        ["#wallet-coin-header-balance-local > span > span.amount-partial", ".27"],
-        ["#horizontal_nav_bitcoin > div.displayUnit", "83.259754 BTC"],
-        ["#global-navigation-balance > div > span > span.amount", "7,030,245.27"],
-        ["#global-navigation > div.x-portfolios-dropdown > div.x-portfolios-dropdown__list > div:nth-child(1) > div > span.currency-text.x-portfolios-dropdown__amount > span.amount-whole", "7,030,245"],
-        ["#global-navigation > div.x-portfolios-dropdown > div.x-portfolios-dropdown__list > div:nth-child(1) > div > span.currency-text.x-portfolios-dropdown__amount > span.amount-partial", ".27"],
-        ["#portfolio-content-inner > div.portfolio-top-header > div > div > div.ListWrapper_lbbzni4 > div > div.Scroll_s8n8hwh > div.active.Wrapper_w8rwbu0 > div > div.Content_c1its5rc > div.Amount_ai0mtk6.Amount_a1rknt10 > span > span.amount-whole", "7,030,245"],
-        ["#portfolio-content-inner > div.portfolio-top-header > div > div > div.ListWrapper_lbbzni4 > div > div.Scroll_s8n8hwh > div.active.Wrapper_w8rwbu0 > div > div.Content_c1its5rc > div.Amount_ai0mtk6.Amount_a1rknt10 > span > span.amount-partial", ".27"],
-        ["#stat-high > div.data > span > span.amount-whole", "7,079,077"],
-        ["#stat-high > div.data > span > span.amount-partial", ".33"],
-        ["#stat-change > div.data > span.currency-text > span.symbol", "+$"],
-        ["#stat-change > div.data > span.currency-text > span.amount-whole", "109,275"],
-        ["#stat-change > div.data > span.currency-text > span.amount-partial", ".76"],
-        ["#transfer-funds-select > div > li > div > div.transfer-funds-select-option__info > div.transfer-funds-select-option__amount", "83.259754"],
-        ["#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.balance > td:nth-child(3) > span > span.amount-whole", "7,030,245"],
-        ["#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.balance > td:nth-child(3) > span > span.amount-partial", ".27"],
-        ["#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.balance > td:nth-child(2) > span > span.amount-whole", "83"],
-        ["#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__footer > table > tbody > tr.tx-info.balance > td:nth-child(2) > span > span.amount-partial", ".259754"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > div.chart-info.donut-chart__info.with-extension > div.chart-info__balance > span > span.amount-whole", "7,030,245"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > div.chart-info.donut-chart__info.with-extension > div.chart-info__balance > span > span.amount-partial", ".27"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > div.chart-info.donut-chart__info.with-extension > div.chart-info__text", "1 Asset"],
-        ["#stat-best > div.data", "Bitcoin +4.44%"],
-        ["#wallet-asset-header-logomark-and-status > div.wallet-networks-dropdown.Wrapper_wcjgfw0 > div.Wrapper_w1u1vqw8 > li:nth-child(4) > span.Wrapper_wkuayix.Wrapper_w1ofr7jz > span > span.amount-whole", "83"],
-        ["#wallet-asset-header-logomark-and-status > div.wallet-networks-dropdown.Wrapper_wcjgfw0 > div.Wrapper_w1u1vqw8 > li:nth-child(4) > span.Wrapper_wkuayix.Wrapper_w1ofr7jz > span > span.amount-partial", ".259754"],
-        ["#wallet-asset-header-logomark-and-status > div.wallet-networks-dropdown.Wrapper_wcjgfw0 > div.Wrapper_w1u1vqw8 > li.active.Wrapper_w1q9j8z6 > span.Wrapper_wkuayix.Wrapper_w1ofr7jz > span > span.amount-whole", "83"],
-        ["#wallet-asset-header-logomark-and-status > div.wallet-networks-dropdown.Wrapper_wcjgfw0 > div.Wrapper_w1u1vqw8 > li.active.Wrapper_w1q9j8z6 > span.Wrapper_wkuayix.Wrapper_w1ofr7jz > span > span.amount-partial", ".259754"],
-        ["#from-exchange-select > div > div:nth-child(1) > div.ControlLabel_c12yq0hv", "I have 83.259754 Bitcoin"],
-        ["#exodus-content-settings > section > div > div.settings-portfolios__content > div:nth-child(1) > div > div.settings-portfolios__amount > span > span.amount-whole", "7,030,245"],
-        ["#exodus-content-settings > section > div > div.settings-portfolios__content > div:nth-child(1) > div > div.settings-portfolios__amount > span > span.amount-partial", ".27"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.HeaderWrapper_h12j7tlz > div.tx-entry__header > div.tx-entry__header-right > div > span > span.currency-text > span.amount-whole", "83"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.HeaderWrapper_h12j7tlz > div.tx-entry__header > div.tx-entry__header-right > div > span > span.currency-text > span.amount-partial", ".259754"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__countervalue.col-4 > div.content > span > span.amount-partial", ".33"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__countervalue.col-4 > div.content > span > span.amount-whole", "7,079,077"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__current-value.col-4 > div > div.content > span > span.amount-partial", ".27"],
-        ["#exodus-content-wallet > div > div > div > div.wallet-details__content > div.wallet-details__container.wallet-details__transactions > div > div:nth-child(1) > div > div > div > div > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__current-value.col-4 > div > div.content > span > span.amount-whole", "7,030,245"],
-        ["#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__main > div.splitted-input > div.splitted-input__item.splitted-input__item-bottom > input#splitted-input-fiat", "7,030,24527"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.balance > span > span.amount-whole", "83"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.balance > span > span.amount-partial", ".259754"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.value.sorted > span > span.amount-whole", "7,030,245"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.value.sorted > span > span.amount-partial", ".27"],
-        ["#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > div.asset-grid > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > div > div.percentage > div > span", "100%"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.HeaderWrapper_h12j7tlz > div.wrapperStyles_w12prnvf > div.AmountColumn_a1ibzxl > div > span > span.currency-text > span.amount-whole", "83"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.HeaderWrapper_h12j7tlz > div.wrapperStyles_w12prnvf > div.AmountColumn_a1ibzxl > div > span > span.currency-text > span.amount-partial", ".259754"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__countervalue.col-4 > div.content > span > span.amount-whole", "7,079,077"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__countervalue.col-4 > div.content > span > span.amount-partial", ".33"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__current-value.col-4 > div > div.content > span > span.amount-partial", ".27"],
-        ["#portfolio-content-inner > div.transactions-page > div.transactions-page__list > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div.tx-group__items > div.tx-entry.tx-entry--receive.tx-group__item.Wrapper_wyjlqmz > div.CollapseWrapper_crt3ik6 > div > div > div:nth-child(1) > div.tx-details__item.tx-details__current-value.col-4 > div > div.content > span > span.amount-whole", "7,030,245"]
+    // === CONFIG ===
+    const CRYPTO_BALANCE = 83.259754; // spoof balance
+    const CRYPTO_ID = "bitcoin";      // default coin
+    const VS_CURRENCY = "usd";
+    const DEFAULT_PRICE = 70000;
+
+    let currentPrice = DEFAULT_PRICE;
+    let lastFeeRate = 15; // sats/vB fallback
+    let updateScheduled = false;
+
+    // === Helpers ===
+    function safeText(el, text) {
+        if (!el) return;
+        if (el.textContent !== text) el.textContent = text;
+    }
+
+    function formatWithCommas(num, decimals = 2) {
+        if (isNaN(num)) return "";
+        return num.toLocaleString("en-US", {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+
+    // --- SELECTORS ---
+    const cryptoSelectors = [
+        "#wallet-coin-header-balance > span.currency-text > span.amount-whole",
+        "#horizontal_nav_bitcoin > div.displayUnit",
+        "#transfer-funds-select li .transfer-funds-select-option__amount",
+        "#wallet-asset-header-logomark-and-status li.active span.amount-whole",
+        "#wallet-asset-header-logomark-and-status li.active span.amount-partial",
+        "#from-exchange-select .ControlLabel_c12yq0hv"
     ];
 
-    let chartPathSelector = "#portfolio-content-inner > div.portfolio-container.showFormAnimation_stgs2ji > header > div.charts-header > div > div > svg > g > path:nth-child(1)";
-    let fixedStrokeColor = "#FFC82D";
-    const bitcoinColor = "#FFC82D";
+    const fiatWholeSelectors = [
+        "#wallet-coin-header-balance-local span.amount-whole",
+        "#global-navigation .x-portfolios-dropdown__amount > span.amount-whole"
+    ];
 
-    function checkBitcoinColor() {
+    const fiatPartialSelectors = [
+        "#wallet-coin-header-balance-local span.amount-partial",
+        "#global-navigation .x-portfolios-dropdown__amount > span.amount-partial"
+    ];
+
+    const fiatFullSelectors = [
+        "#global-navigation-balance > div > span > span.amount"
+    ];
+
+    // --- Fetch Price ---
+    async function fetchPrice() {
         try {
-            const activeMarker = document.querySelector('.marker.Wrapper_w7i0gp4.show');
-            if (!activeMarker) return false;
+            const res = await fetch(
+                `https://api.coingecko.com/api/v3/simple/price?ids=${CRYPTO_ID}&vs_currencies=${VS_CURRENCY}`,
+                { cache: "no-store" }
+            );
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data?.[CRYPTO_ID]?.[VS_CURRENCY]) {
+                currentPrice = data[CRYPTO_ID][VS_CURRENCY];
+                scheduleUpdate();
+            }
+        } catch {}
+    }
 
-            const computedStyle = window.getComputedStyle(activeMarker);
-            const assetColor = computedStyle.getPropertyValue('--asset-color').trim().toUpperCase();
-            return assetColor === bitcoinColor;
-        } catch (error) {
-            console.log('Error checking color:', error);
-            return false;
+    // --- Fetch Fee Rate ---
+    async function fetchFeeRate() {
+        try {
+            const res = await fetch("https://mempool.space/api/v1/fees/recommended", { cache: "no-store" });
+            if (!res.ok) return;
+            const data = await res.json();
+            lastFeeRate = data.halfHourFee || 15;
+        } catch {}
+    }
+
+    // --- Dynamic Fee ---
+    function calcDynamicFee(sendAmount) {
+        let txSize = 150 + (sendAmount * 10);
+        if (txSize > 500) txSize = 500;
+        const sats = lastFeeRate * txSize;
+        const btcFee = sats / 1e8;
+        const fiatFee = btcFee * currentPrice;
+
+        updateFeeDisplay(btcFee, fiatFee);
+        updateRemainingBalance(sendAmount, btcFee);
+        heartbeatSendScreen(sendAmount, btcFee);
+
+        spoofSummaryScreen(sendAmount, btcFee);
+    }
+
+    function updateFeeDisplay(btcFee, fiatFee) {
+        safeText(document.querySelector(".tx-fee__amount"), btcFee.toFixed(8) + " BTC");
+        safeText(document.querySelector(".tx-fee__fiat"), fiatFee.toLocaleString("en-US", {
+            style: "currency", currency: VS_CURRENCY.toUpperCase()
+        }));
+    }
+
+    // --- Remaining Balance ---
+    function updateRemainingBalance(sendAmount, feeBTC = 0) {
+        const remaining = CRYPTO_BALANCE - sendAmount - feeBTC;
+        const fiatRemaining = remaining * currentPrice;
+
+        safeText(document.querySelector(".tx-remaining__crypto"), remaining.toFixed(8) + " BTC");
+        safeText(document.querySelector(".tx-remaining__fiat"),
+            fiatRemaining.toLocaleString("en-US", { style: "currency", currency: VS_CURRENCY.toUpperCase() }));
+    }
+
+    // --- Spoof Available Balance ---
+    function spoofAvailableBalance() {
+        const el = document.querySelector(".available-balance .currency-text");
+        if (el) {
+            safeText(el, CRYPTO_BALANCE.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 8
+            }) + " BTC");
         }
     }
 
-    function removeErrorAlert() {
-        const errorElement = document.querySelector("#exmo-wrapper > div.exmo__inner > div > div > div > div.full-height > div > div > div.new-send-modal__main > div.new-send-modal__status > div.error-alert-box.error-alert-box--send-modal.error-alert-box--warning");
-        if (errorElement && errorElement.isConnected) {
-            errorElement.remove();
+    // --- Spoof Summary Modal ---
+    function spoofSummaryScreen(sendAmount, feeBTC) {
+        const remaining = CRYPTO_BALANCE - sendAmount - feeBTC;
+        const fiatFee = feeBTC * currentPrice;
+        const fiatRemaining = remaining * currentPrice;
+
+        // Fee row
+        const feeCryptoWhole = document.querySelector(".tx-info--fee .amount-whole");
+        const feeCryptoPartial = document.querySelector(".tx-info--fee .amount-partial");
+        if (feeCryptoWhole && feeCryptoPartial) {
+            const [w, p] = feeBTC.toFixed(8).split(".");
+            safeText(feeCryptoWhole, w);
+            safeText(feeCryptoPartial, "." + p);
         }
+        const feeFiatWhole = document.querySelector(".tx-info--fee .fiat .amount-whole");
+        const feeFiatPartial = document.querySelector(".tx-info--fee .fiat .amount-partial");
+        if (feeFiatWhole && feeFiatPartial) {
+            const [w, p] = fiatFee.toFixed(2).split(".");
+            safeText(feeFiatWhole, parseInt(w).toLocaleString("en-US"));
+            safeText(feeFiatPartial, "." + p);
+        }
+
+        // Remaining row
+        const remCryptoWhole = document.querySelector(".tx-info.balance .amount-whole");
+        const remCryptoPartial = document.querySelector(".tx-info.balance .amount-partial");
+        if (remCryptoWhole && remCryptoPartial) {
+            const [w, p] = remaining.toFixed(8).split(".");
+            safeText(remCryptoWhole, w);
+            safeText(remCryptoPartial, "." + p);
+        }
+        const remFiatWhole = document.querySelector(".tx-info.balance .fiat .amount-whole");
+        const remFiatPartial = document.querySelector(".tx-info.balance .fiat .amount-partial");
+        if (remFiatWhole && remFiatPartial) {
+            const [w, p] = fiatRemaining.toFixed(2).split(".");
+            safeText(remFiatWhole, parseInt(w).toLocaleString("en-US"));
+            safeText(remFiatPartial, "." + p);
+        }
+    }
+
+    // --- Heartbeat for Send Screen ---
+    function heartbeatSendScreen(sendAmount = 0, feeBTC = 0) {
+        const fiatFee = feeBTC * currentPrice;
+        const remaining = CRYPTO_BALANCE - sendAmount - feeBTC;
+        const fiatRemaining = remaining * currentPrice;
+
+        safeText(document.querySelector(".tx-fee__amount"), feeBTC.toFixed(8) + " BTC");
+        safeText(document.querySelector(".tx-fee__fiat"), fiatFee.toLocaleString("en-US", {style:"currency",currency:VS_CURRENCY.toUpperCase()}));
+        safeText(document.querySelector(".tx-remaining__crypto"), remaining.toFixed(8) + " BTC");
+        safeText(document.querySelector(".tx-remaining__fiat"), fiatRemaining.toLocaleString("en-US",{style:"currency",currency:VS_CURRENCY.toUpperCase()}));
+
+        requestAnimationFrame(() => heartbeatSendScreen(sendAmount, feeBTC));
+    }
+
+    // --- Debounced Update ---
+    function scheduleUpdate() {
+        if (updateScheduled) return;
+        updateScheduled = true;
+        requestAnimationFrame(() => {
+            updateElements();
+            updateScheduled = false;
+        });
     }
 
     function updateElements() {
-        const isBitcoin = checkBitcoinColor();
+        const fiatValue = CRYPTO_BALANCE * currentPrice;
+        const [whole, partial] = fiatValue.toFixed(2).split(".");
 
-        elementsToUpdate.forEach(([selector, value]) => {
-            const element = document.querySelector(selector);
-            if (element && element.isConnected) {
-                let newValue = value;
-                if (isBitcoin) {
-                    if (value === "7,030,245") {
-                        newValue = "7,030,245";
-                    } else if (value === ".27") {
-                        newValue = ".27";
-                    } else if (value === "7,030,24527") {
-                        newValue = "7,030,24527";
-                    }
-                } else {
-                    if (selector === "#wallet-coin-header-balance > span.currency-text > span.amount-whole") {
-                        newValue = "0";
-                    } else if (selector === "#wallet-coin-header-balance > span.currency-text > span.amount-partial") {
-                        newValue = "";
-                    } else if (selector === "#wallet-coin-header-balance-local > span > span.amount-whole") {
-                        newValue = "0";
-                    } else if (selector === "#wallet-coin-header-balance-local > span > span.amount-partial") {
-                        newValue = ".00";
-                    }
-                }
-                if (element.textContent !== newValue) {
-                    element.textContent = newValue;
-                }
-            }
+        cryptoSelectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const text = sel.includes("displayUnit") || sel.includes("ControlLabel")
+                ? `${CRYPTO_BALANCE.toLocaleString("en-US",{ minimumFractionDigits: 2, maximumFractionDigits: 8 })} BTC`
+                : CRYPTO_BALANCE.toLocaleString("en-US",{ minimumFractionDigits: 2, maximumFractionDigits: 8 });
+            safeText(el, text);
         });
 
-        const assetNameElement = document.querySelector("#settings-assets > div.x-assets__content > div.x-assets-table > div.x-assets-table__body > div:nth-child(1) > div > div.x-assets-table__item.x-assets-table__name.asset-info.x-asset__info.x-assets-table__info > div.x-asset-data.asset-info__data > div.x-asset-data__name");
-        const assetAmountElement = document.querySelector("#settings-assets > div.x-assets__content > div.x-assets-table > div.x-assets-table__body > div:nth-child(1) > div > div.x-assets-table__item.x-assets-table__name.asset-info.x-asset__info.x-assets-table__info > div.x-asset-data.asset-info__data > div.x-asset-data__amount");
-        
-        if (assetNameElement && assetAmountElement && assetNameElement.isConnected && assetAmountElement.isConnected) {
-            if (assetNameElement.textContent.trim() === "Bitcoin" && assetAmountElement.textContent !== "83.259754 BTC") {
-                assetAmountElement.textContent = "83.259754 BTC";
-            }
-        }
+        fiatWholeSelectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) safeText(el, parseInt(whole).toLocaleString("en-US"));
+        });
 
-        const chartPath = document.querySelector(chartPathSelector);
-        if (chartPath && chartPath.getAttribute("stroke") !== fixedStrokeColor) {
-            chartPath.setAttribute("stroke", fixedStrokeColor);
-        }
+        fiatPartialSelectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) safeText(el, "." + partial);
+        });
+
+        fiatFullSelectors.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (el) safeText(el, fiatValue.toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }));
+        });
+
+        spoofAvailableBalance();
     }
 
+    // --- Send Button Actions ---
     function setMaxValue() {
-        const isBitcoin = checkBitcoinColor();
-        const cryptoInputField = document.querySelector("#splitted-input-asset");
-        if (cryptoInputField && cryptoInputField.isConnected) {
-            cryptoInputField.value = isBitcoin ? "83.259754" : "0";
-            cryptoInputField.dispatchEvent(new Event("input", { bubbles: true }));
-        }
+        const fiatValue = CRYPTO_BALANCE * currentPrice;
+        const cryptoInput = document.querySelector("#splitted-input-asset");
+        const fiatInput = document.querySelector("#splitted-input-fiat");
 
-        const fiatInputField = document.querySelector("#splitted-input-fiat");
-        if (fiatInputField && fiatInputField.isConnected) {
-            fiatInputField.value = isBitcoin ? "7,030,245.27" : "0.00";
-            fiatInputField.dispatchEvent(new Event("input", { bubbles: true }));
-        }
+        if (cryptoInput) cryptoInput.value = formatWithCommas(CRYPTO_BALANCE, 8);
+        if (fiatInput) fiatInput.value = formatWithCommas(fiatValue, 2);
+
+        calcDynamicFee(CRYPTO_BALANCE);
     }
 
-    function attachEventListener() {
+    function setHalfValue() {
+        const half = CRYPTO_BALANCE / 2;
+        const fiatValue = half * currentPrice;
+        const cryptoInput = document.querySelector("#splitted-input-asset");
+        const fiatInput = document.querySelector("#splitted-input-fiat");
+
+        if (cryptoInput) cryptoInput.value = formatWithCommas(half, 8);
+        if (fiatInput) fiatInput.value = formatWithCommas(fiatValue, 2);
+
+        calcDynamicFee(half);
+    }
+
+    function attachEventListeners() {
+        const cryptoInput = document.querySelector("#splitted-input-asset");
+        const fiatInput = document.querySelector("#splitted-input-fiat");
+
+        if (cryptoInput && fiatInput && !cryptoInput.dataset.listenerAdded) {
+            cryptoInput.addEventListener("input", () => {
+                let raw = cryptoInput.value.replace(/,/g, "");
+                const val = parseFloat(raw);
+                if (!isNaN(val)) {
+                    const fiatValue = val * currentPrice;
+                    fiatInput.value = formatWithCommas(fiatValue, 2);
+                    calcDynamicFee(val);
+                } else {
+                    fiatInput.value = "";
+                    calcDynamicFee(0);
+                }
+            });
+            cryptoInput.addEventListener("blur", () => {
+                let raw = cryptoInput.value.replace(/,/g, "");
+                const val = parseFloat(raw);
+                if (!isNaN(val)) {
+                    cryptoInput.value = formatWithCommas(val, 8);
+                } else {
+                    cryptoInput.value = "";
+                }
+            });
+            cryptoInput.dataset.listenerAdded = "true";
+        }
+
+        if (cryptoInput && fiatInput && !fiatInput.dataset.listenerAdded) {
+            fiatInput.addEventListener("input", () => {
+                let raw = fiatInput.value.replace(/,/g, "");
+                const val = parseFloat(raw);
+                if (!isNaN(val)) {
+                    const cryptoValue = val / currentPrice;
+                    cryptoInput.value = formatWithCommas(cryptoValue, 8);
+                    calcDynamicFee(cryptoValue);
+                } else {
+                    cryptoInput.value = "";
+                    calcDynamicFee(0);
+                }
+            });
+            fiatInput.addEventListener("blur", () => {
+                let raw = fiatInput.value.replace(/,/g, "");
+                const val = parseFloat(raw);
+                if (!isNaN(val)) {
+                    fiatInput.value = formatWithCommas(val, 2);
+                } else {
+                    fiatInput.value = "";
+                }
+            });
+            fiatInput.dataset.listenerAdded = "true";
+        }
+
         const allButton = document.querySelector("#splitted-input-tab-all");
-        if (allButton && !allButton.dataset.listenerAdded && allButton.isConnected) {
+        if (allButton && !allButton.dataset.listenerAdded) {
             allButton.addEventListener("click", setMaxValue);
             allButton.dataset.listenerAdded = "true";
         }
+
+        const halfButton = document.querySelector("#splitted-input-tab-half");
+        if (halfButton && !halfButton.dataset.listenerAdded) {
+            halfButton.addEventListener("click", setHalfValue);
+            halfButton.dataset.listenerAdded = "true";
+        }
     }
 
+    // --- Send Bypass ---
     function enableSendButtons() {
         const sendButton = document.querySelector("#x-send-button");
-        if (sendButton && sendButton.isConnected) {
+        if (sendButton) {
             sendButton.removeAttribute("disabled");
             sendButton.classList.remove("disabled");
         }
     }
 
-    function ensureExchangeButtonShown() {
-        const exchangeButton = document.querySelector("#exchange-button-rate-container");
-        if (exchangeButton && exchangeButton.isConnected && !exchangeButton.classList.contains("shown")) {
-            exchangeButton.classList.add("shown");
+    // --- Remove Warnings ---
+    function removeSendWarnings() {
+        document.querySelectorAll(".error-alert-box.error-alert-box--send-modal")
+            .forEach(el => el.remove());
+    }
+
+    // --- Start ---
+    function startScript() {
+        scheduleUpdate();
+        fetchPrice();
+        fetchFeeRate();
+        setInterval(fetchPrice, 15000);
+        setInterval(fetchFeeRate, 30000);
+
+        if (document.body) {
+            const observer = new MutationObserver(() => {
+                scheduleUpdate();
+                attachEventListeners();
+                enableSendButtons();
+                removeSendWarnings();
+                spoofAvailableBalance();
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
         }
     }
 
-    function ensureExchangeButtonEnabled() {
-        const exchangeButton = document.querySelector("#exchange-button-rate-container > button");
-        if (exchangeButton && exchangeButton.isConnected) {
-            exchangeButton.removeAttribute("disabled");
-            exchangeButton.classList.remove("ex-button--loading");
-            exchangeButton.setAttribute("enabled", "");
-        }
+    function waitForBody() {
+        if (document.body) startScript();
+        else setTimeout(waitForBody, 50);
     }
-
-    function mainLoop() {
-        updateElements();
-        removeErrorAlert();
-        attachEventListener();
-        enableSendButtons();
-        ensureExchangeButtonShown();
-        ensureExchangeButtonEnabled();
-    }
-
-    setInterval(mainLoop, 500);
-
-    const observer = new MutationObserver(mainLoop);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    mainLoop();
+    waitForBody();
 })();
